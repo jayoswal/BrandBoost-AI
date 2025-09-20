@@ -37,19 +37,23 @@ export async function generateMarketingAssetTemplates(input: GenerateMarketingAs
   return generateMarketingAssetTemplatesFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateMarketingAssetTemplatesPrompt',
-  input: {schema: GenerateMarketingAssetTemplatesInputSchema},
-  output: {schema: GenerateMarketingAssetTemplatesOutputSchema},
-  prompt: `You are a professional graphic designer AI assistant that creates high-quality, modern, and creative marketing assets for businesses.
+const generationPrompt = ai.definePrompt({
+    name: 'generateMarketingAssetTemplatesPrompt',
+    input: {schema: GenerateMarketingAssetTemplatesInputSchema},
+    output: {schema: GenerateMarketingAssetTemplatesOutputSchema},
+    prompt: `You are a professional graphic designer AI assistant that creates high-quality, modern, and creative marketing assets for businesses.
 
-  Generate a {{{assetType}}} that incorporates the user’s provided business logo and name in a clean, visually appealing way. Use the custom text and color palette if provided.
+Generate a {{{assetType}}} that incorporates the user’s provided business logo and name in a clean, visually appealing way. Use the custom text and color palette if provided.
 
-  Business Name: {{{businessName}}}
-  Business Logo: {{media url=businessLogoDataUri}}
-  Custom Text: {{{customText}}}
-  Color Palette: {{{colorPalette}}}
-  `,
+Business Name: {{{businessName}}}
+Business Logo: {{media url=businessLogoDataUri}}
+Custom Text: {{#if customText}}'{{{customText}}}'{{/if}}
+Color Palette: {{#if colorPalette}}'{{{colorPalette}}}'{{/if}}
+`,
+    model: 'googleai/gemini-2.5-flash-image-preview',
+    config: {
+      responseModalities: ['TEXT', 'IMAGE'],
+    },
 });
 
 const generateMarketingAssetTemplatesFlow = ai.defineFlow(
@@ -60,14 +64,9 @@ const generateMarketingAssetTemplatesFlow = ai.defineFlow(
   },
   async input => {
     const {media} = await ai.generate({
-      model: 'googleai/gemini-2.5-flash-image-preview',
-      prompt: [
-        {media: {url: input.businessLogoDataUri}},
-        {text: `Generate a ${input.assetType} that incorporates the user’s provided business logo and name (${input.businessName}) in a clean, visually appealing way. Use the custom text (${input.customText}) and color palette (${input.colorPalette}) if provided.`},
-      ],
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
+        model: generationPrompt.model,
+        prompt: await generationPrompt.render({input}),
+        config: generationPrompt.config,
     });
 
     if (!media) {
