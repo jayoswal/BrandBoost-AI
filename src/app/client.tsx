@@ -11,10 +11,11 @@ import {
   Palette,
   Paperclip,
   Type,
+  Upload,
   X,
 } from 'lucide-react';
 import Image from 'next/image';
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import {useForm} from 'react-hook-form';
 import * as z from 'zod';
 
@@ -26,6 +27,7 @@ import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Textarea} from '@/components/ui/textarea';
 import {useToast} from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -232,6 +234,32 @@ export default function BrandBoostClient() {
     );
   };
   
+  const FileUpload = ({field, className}: {field: any; className?: string;}) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    return (
+      <FormControl>
+        <>
+          <Input
+            type="file"
+            accept="image/png, image/jpeg, image/webp"
+            className="hidden"
+            ref={inputRef}
+            onChange={e => field.onChange(e.target.files)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className={cn('w-full', className)}
+            onClick={() => inputRef.current?.click()}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Upload
+          </Button>
+        </>
+      </FormControl>
+    );
+  };
     const ReferenceImageUpload = ({
     field,
     preview,
@@ -245,14 +273,7 @@ export default function BrandBoostClient() {
       {preview ? (
         <ImagePreview preview={preview} onRemove={onRemove} />
       ) : (
-        <FormControl>
-          <Input
-            type="file"
-            accept="image/png, image/jpeg, image/webp"
-            className="file:text-primary-foreground"
-            onChange={e => field.onChange(e.target.files)}
-          />
-        </FormControl>
+        <FileUpload field={field} className="h-24" />
       )}
       <FormMessage />
     </div>
@@ -283,14 +304,7 @@ export default function BrandBoostClient() {
                           onRemove={() => form.setValue('logo', null, {shouldValidate: true})}
                         />
                       ) : (
-                        <FormControl>
-                          <Input
-                            type="file"
-                            accept="image/png, image/jpeg, image/webp"
-                            className="file:text-primary-foreground"
-                            onChange={e => field.onChange(e.target.files)}
-                          />
-                        </FormControl>
+                        <FileUpload field={field} />
                       )}
                       <FormMessage />
                     </FormItem>
