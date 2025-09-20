@@ -60,14 +60,15 @@ Custom Text: ${input.customText || ''}
 Color Palette: ${input.colorPalette || ''}
 `;
 
-    const prompt: any[] = [{text: promptText}, {media: {url: input.businessLogoDataUri}}];
+    const prompt: any[] = [
+      {text: promptText},
+      {media: {url: input.businessLogoDataUri}},
+    ];
 
     if (input.referenceImage1DataUri) {
-      prompt.push({text: 'Reference Image 1:'});
       prompt.push({media: {url: input.referenceImage1DataUri}});
     }
     if (input.referenceImage2DataUri) {
-      prompt.push({text: 'Reference Image 2:'});
       prompt.push({media: {url: input.referenceImage2DataUri}});
     }
 
