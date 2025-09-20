@@ -8,5 +8,5 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[[functions."background-functions"]]
+[functions."background-functions"]
   timeout = 120
