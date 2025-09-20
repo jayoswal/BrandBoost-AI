@@ -1,0 +1,312 @@
+'use client';
+
+import {zodResolver} from '@hookform/resolvers/zod';
+import {
+  Building2,
+  Download,
+  Image as ImageIcon,
+  ImagePlus,
+  LoaderCircle,
+  Palette,
+  Type,
+} from 'lucide-react';
+import Image from 'next/image';
+import {useState} from 'react';
+import {useForm} from 'react-hook-form';
+import * as z from 'zod';
+
+import {generateMarketingAssetTemplates} from '@/app/actions';
+import {Button} from '@/components/ui/button';
+import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from '@/components/ui/card';
+import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage} from '@/components/ui/form';
+import {Input} from '@/components/ui/input';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {Textarea} from '@/components/ui/textarea';
+import {useToast} from '@/hooks/use-toast';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+const formSchema = z.object({
+  logo: z
+    .any()
+    .refine(files => files?.length == 1, 'Logo is required.')
+    .refine(files => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+    .refine(
+      files => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+      '.jpg, .jpeg, .png and .webp files are accepted.'
+    ),
+  businessName: z.string().min(2, {
+    message: 'Business name must be at least 2 characters.',
+  }),
+  assetType: z.string().min(1, 'Please select an asset type.'),
+  customText: z.string().optional(),
+  colorPalette: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+const fileToDataUri = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+export default function BrandBoostClient() {
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState('png');
+  const {toast} = useToast();
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      businessName: '',
+      assetType: 'Social Media Post',
+      customText: '',
+      colorPalette: '',
+    },
+  });
+
+  async function onSubmit(values: FormValues) {
+    setIsLoading(true);
+    setGeneratedImage(null);
+
+    try {
+      const logoFile = values.logo[0] as File;
+      const businessLogoDataUri = await fileToDataUri(logoFile);
+
+      const result = await generateMarketingAssetTemplates({
+        businessLogoDataUri,
+        businessName: values.businessName,
+        assetType: values.assetType,
+        customText: values.customText,
+        colorPalette: values.colorPalette,
+      });
+
+      if (result && result.assetDataUri) {
+        setGeneratedImage(result.assetDataUri);
+        toast({
+          title: 'Asset Generated!',
+          description: 'Your new marketing asset is ready.',
+        });
+      } else {
+        throw new Error('AI did not return an image.');
+      }
+    } catch (error) {
+      console.error('Error generating asset:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Generation Failed',
+        description: 'Could not generate the marketing asset. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleDownload = () => {
+    if (!generatedImage) return;
+    const link = document.createElement('a');
+
+    const downloadWithFormat = (uri: string, format: 'png' | 'jpeg') => {
+      link.href = uri;
+      link.download = `${form.getValues('businessName') || 'brandboost'}-asset.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    if (downloadFormat === 'jpeg') {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new window.Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        if (ctx) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          const jpegDataUri = canvas.toDataURL('image/jpeg', 0.9);
+          downloadWithFormat(jpegDataUri, 'jpeg');
+        }
+      };
+      img.src = generatedImage;
+    } else {
+      downloadWithFormat(generatedImage, 'png');
+    }
+  };
+
+  return (
+    <div className="container mx-auto grid grid-cols-1 gap-8 p-4 md:grid-cols-3 md:p-6">
+      <div className="md:col-span-1">
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline text-xl">Customize Your Asset</CardTitle>
+            <CardDescription>Fill in the details to generate a new marketing asset.</CardDescription>
+          </CardHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="logo"
+                  render={({field}) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <ImagePlus className="h-4 w-4" /> Business Logo
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          accept="image/png, image/jpeg, image/webp"
+                          className="file:text-primary-foreground"
+                          onChange={e => field.onChange(e.target.files)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="businessName"
+                  render={({field}) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" /> Business Name
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Creative Inc." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="assetType"
+                  render={({field}) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4" /> Asset Type
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an asset type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Social Media Post">Social Media Post</SelectItem>
+                          <SelectItem value="Website Banner">Website Banner</SelectItem>
+                          <SelectItem value="Email Header">Email Header</SelectItem>
+                          <SelectItem value="Flyer">Flyer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="customText"
+                  render={({field}) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Type className="h-4 w-4" /> Custom Text (optional)
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="e.g., Grand Opening Sale! 50% Off!" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="colorPalette"
+                  render={({field}) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Palette className="h-4 w-4" /> Color Palette (optional)
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., vibrant, pastel, monochrome" {...field} />
+                      </FormControl>
+                      <FormDescription>Describe the colors you want, e.g., "blue and gold".</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" disabled={isLoading} className="w-full bg-accent hover:bg-accent/90">
+                  {isLoading ? (
+                    <>
+                      <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    'Generate Asset'
+                  )}
+                </Button>
+              </CardFooter>
+            </form>
+          </Form>
+        </Card>
+      </div>
+
+      <div className="md:col-span-2">
+        <Card className="sticky top-20">
+          <CardHeader>
+            <CardTitle className="font-headline text-xl">Preview</CardTitle>
+            <CardDescription>Your generated asset will appear here.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex min-h-[400px] items-center justify-center rounded-lg border-2 border-dashed bg-muted/50 p-4">
+            {isLoading ? (
+              <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
+                <p className="font-bold">Generating your masterpiece...</p>
+                <p className="text-sm">This may take a moment.</p>
+              </div>
+            ) : generatedImage ? (
+              <div className="relative aspect-video w-full overflow-hidden rounded-md">
+                <Image src={generatedImage} alt="Generated marketing asset" layout="fill" objectFit="contain" />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
+                <ImageIcon className="h-12 w-12" />
+                <p className="font-bold">Ready to create?</p>
+                <p className="text-sm">Fill out the form to generate your asset.</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="justify-end gap-2">
+            <Select onValueChange={setDownloadFormat} defaultValue={downloadFormat} disabled={!generatedImage}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Format" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="png">PNG</SelectItem>
+                <SelectItem value="jpeg">JPEG</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={handleDownload} disabled={!generatedImage || isLoading}>
+              <Download className="mr-2 h-4 w-4" />
+              Download
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </div>
+  );
+}
