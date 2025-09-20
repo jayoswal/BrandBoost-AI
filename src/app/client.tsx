@@ -9,6 +9,7 @@ import {
   ImagePlus,
   LoaderCircle,
   Palette,
+  Paperclip,
   Type,
   X,
 } from 'lucide-react';
@@ -29,6 +30,15 @@ import {useToast} from '@/hooks/use-toast';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
+const imageFileSchema = z
+  .any()
+  .optional()
+  .refine(files => !files || files.length === 0 || files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+  .refine(
+    files => !files || files.length === 0 || ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+    '.jpg, .jpeg, .png and .webp files are accepted.'
+  );
+
 const formSchema = z.object({
   logo: z
     .any()
@@ -43,6 +53,8 @@ const formSchema = z.object({
   }),
   assetType: z.string().min(1, 'Please select an asset type.'),
   imageDescription: z.string().min(1, 'Image description is required.'),
+  referenceImage1: imageFileSchema,
+  referenceImage2: imageFileSchema,
   customText: z.string().optional(),
   colorPalette: z.string().optional(),
 });
@@ -63,6 +75,8 @@ export default function BrandBoostClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState('png');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [referenceImage1Preview, setReferenceImage1Preview] = useState<string | null>(null);
+  const [referenceImage2Preview, setReferenceImage2Preview] = useState<string | null>(null);
   const {toast} = useToast();
 
   const form = useForm<FormValues>({
@@ -77,6 +91,8 @@ export default function BrandBoostClient() {
   });
 
   const logoFile = form.watch('logo');
+  const referenceImage1File = form.watch('referenceImage1');
+  const referenceImage2File = form.watch('referenceImage2');
 
   useEffect(() => {
     if (logoFile && logoFile.length > 0) {
@@ -84,15 +100,39 @@ export default function BrandBoostClient() {
       if (file instanceof File) {
         const previewUrl = URL.createObjectURL(file);
         setLogoPreview(previewUrl);
-
-        return () => {
-          URL.revokeObjectURL(previewUrl);
-        };
+        return () => URL.revokeObjectURL(previewUrl);
       }
     } else {
       setLogoPreview(null);
     }
   }, [logoFile]);
+
+  useEffect(() => {
+    if (referenceImage1File && referenceImage1File.length > 0) {
+      const file = referenceImage1File[0];
+      if (file instanceof File) {
+        const previewUrl = URL.createObjectURL(file);
+        setReferenceImage1Preview(previewUrl);
+        return () => URL.revokeObjectURL(previewUrl);
+      }
+    } else {
+      setReferenceImage1Preview(null);
+    }
+  }, [referenceImage1File]);
+
+  useEffect(() => {
+    if (referenceImage2File && referenceImage2File.length > 0) {
+      const file = referenceImage2File[0];
+      if (file instanceof File) {
+        const previewUrl = URL.createObjectURL(file);
+        setReferenceImage2Preview(previewUrl);
+        return () => URL.revokeObjectURL(previewUrl);
+      }
+    } else {
+      setReferenceImage2Preview(null);
+    }
+  }, [referenceImage2File]);
+
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
@@ -102,6 +142,13 @@ export default function BrandBoostClient() {
       const logoFile = values.logo[0] as File;
       const businessLogoDataUri = await fileToDataUri(logoFile);
 
+      const referenceImage1DataUri = values.referenceImage1?.[0]
+        ? await fileToDataUri(values.referenceImage1[0])
+        : undefined;
+      const referenceImage2DataUri = values.referenceImage2?.[0]
+        ? await fileToDataUri(values.referenceImage2[0])
+        : undefined;
+
       const result = await generateMarketingAssetTemplates({
         businessLogoDataUri,
         businessName: values.businessName,
@@ -109,6 +156,8 @@ export default function BrandBoostClient() {
         imageDescription: values.imageDescription,
         customText: values.customText,
         colorPalette: values.colorPalette,
+        referenceImage1DataUri,
+        referenceImage2DataUri,
       });
 
       if (result && result.assetDataUri) {
@@ -165,6 +214,24 @@ export default function BrandBoostClient() {
     }
   };
 
+  const ImagePreview = ({preview, onRemove}: {preview: string | null; onRemove: () => void}) => {
+    if (!preview) return null;
+    return (
+      <div className="relative mt-2 h-24 w-24">
+        <Image src={preview} alt="Preview" fill objectFit="contain" className="rounded-md border" />
+        <Button
+          type="button"
+          variant="destructive"
+          size="icon"
+          className="absolute -right-2 -top-2 h-6 w-6 rounded-full"
+          onClick={onRemove}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <div className="container mx-auto grid grid-cols-1 gap-8 p-4 md:grid-cols-3 md:p-6">
       <div className="md:col-span-1">
@@ -185,27 +252,10 @@ export default function BrandBoostClient() {
                         <ImagePlus className="h-4 w-4" /> Business Logo
                       </FormLabel>
                       {logoPreview ? (
-                        <div className="relative h-24 w-24">
-                          <Image
-                            src={logoPreview}
-                            alt="Logo preview"
-                            fill
-                            objectFit="contain"
-                            className="rounded-md border"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -right-2 -top-2 h-6 w-6 rounded-full"
-                            onClick={() => {
-                              form.setValue('logo', null, {shouldValidate: true});
-                              setLogoPreview(null);
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <ImagePreview
+                          preview={logoPreview}
+                          onRemove={() => form.setValue('logo', null, {shouldValidate: true})}
+                        />
                       ) : (
                         <FormControl>
                           <Input
@@ -277,6 +327,62 @@ export default function BrandBoostClient() {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="referenceImage1"
+                  render={({field}) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Paperclip className="h-4 w-4" /> Reference Image 1 (optional)
+                      </FormLabel>
+                      {referenceImage1Preview ? (
+                         <ImagePreview
+                           preview={referenceImage1Preview}
+                           onRemove={() => form.setValue('referenceImage1', null, {shouldValidate: true})}
+                         />
+                      ) : (
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/png, image/jpeg, image/webp"
+                            className="file:text-primary-foreground"
+                            onChange={e => field.onChange(e.target.files)}
+                          />
+                        </FormControl>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="referenceImage2"
+                  render={({field}) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Paperclip className="h-4 w-4" /> Reference Image 2 (optional)
+                      </FormLabel>
+                      {referenceImage2Preview ? (
+                         <ImagePreview
+                           preview={referenceImage2Preview}
+                           onRemove={() => form.setValue('referenceImage2', null, {shouldValidate: true})}
+                         />
+                      ) : (
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/png, image/jpeg, image/webp"
+                            className="file:text-primary-foreground"
+                            onChange={e => field.onChange(e.target.files)}
+                          />
+                        </FormControl>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

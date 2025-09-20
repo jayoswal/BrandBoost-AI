@@ -22,6 +22,8 @@ const GenerateMarketingAssetTemplatesInputSchema = z.object({
   imageDescription: z.string().describe('A description of what the image should be about.'),
   customText: z.string().optional().describe('Optional custom text to include in the asset.'),
   colorPalette: z.string().optional().describe('Optional color palette to use for the asset.'),
+  referenceImage1DataUri: z.string().optional().describe('Optional reference image 1 as a data URI.'),
+  referenceImage2DataUri: z.string().optional().describe('Optional reference image 2 as a data URI.'),
 });
 export type GenerateMarketingAssetTemplatesInput = z.infer<typeof GenerateMarketingAssetTemplatesInputSchema>;
 
@@ -45,23 +47,31 @@ const generateMarketingAssetTemplatesFlow = ai.defineFlow(
     outputSchema: GenerateMarketingAssetTemplatesOutputSchema,
   },
   async (input) => {
-    const prompt = `You are a professional graphic designer AI assistant that creates high-quality, modern, and creative marketing assets for businesses.
+    const promptText = `You are a professional graphic designer AI assistant that creates high-quality, modern, and creative marketing assets for businesses.
 
 Generate a ${input.assetType} based on the following description: "${input.imageDescription}".
 
 Incorporate the user’s provided business logo and name in a clean, visually appealing way. Use the custom text and color palette if provided.
+
+If reference images are provided, use them for general inspiration only. Do not copy any text or graphics from the reference images.
 
 Business Name: ${input.businessName}
 Custom Text: ${input.customText || ''}
 Color Palette: ${input.colorPalette || ''}
 `;
 
+    const prompt: any[] = [{text: promptText}, {media: {url: input.businessLogoDataUri}}];
+
+    if (input.referenceImage1DataUri) {
+      prompt.push({media: {url: input.referenceImage1DataUri}});
+    }
+    if (input.referenceImage2DataUri) {
+        prompt.push({media: {url: input.referenceImage2DataUri}});
+    }
+
     const {media} = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
-        prompt: [
-            {text: prompt},
-            {media: {url: input.businessLogoDataUri}}
-        ],
+        prompt,
         config: {
             responseModalities: ['TEXT', 'IMAGE'],
         },
