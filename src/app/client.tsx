@@ -231,6 +231,32 @@ export default function BrandBoostClient() {
       </div>
     );
   };
+  
+    const ReferenceImageUpload = ({
+    field,
+    preview,
+    onRemove,
+  }: {
+    field: any;
+    preview: string | null;
+    onRemove: () => void;
+  }) => (
+    <div className="flex-1">
+      {preview ? (
+        <ImagePreview preview={preview} onRemove={onRemove} />
+      ) : (
+        <FormControl>
+          <Input
+            type="file"
+            accept="image/png, image/jpeg, image/webp"
+            className="file:text-primary-foreground"
+            onChange={e => field.onChange(e.target.files)}
+          />
+        </FormControl>
+      )}
+      <FormMessage />
+    </div>
+  );
 
   return (
     <div className="container mx-auto grid grid-cols-1 gap-8 p-4 md:grid-cols-3 md:p-6">
@@ -332,61 +358,40 @@ export default function BrandBoostClient() {
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="referenceImage1"
-                  render={({field}) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Paperclip className="h-4 w-4" /> Reference Image 1 (optional)
-                      </FormLabel>
-                      {referenceImage1Preview ? (
-                         <ImagePreview
-                           preview={referenceImage1Preview}
-                           onRemove={() => form.setValue('referenceImage1', null, {shouldValidate: true})}
-                         />
-                      ) : (
-                        <FormControl>
-                          <Input
-                            type="file"
-                            accept="image/png, image/jpeg, image/webp"
-                            className="file:text-primary-foreground"
-                            onChange={e => field.onChange(e.target.files)}
+                <div className="space-y-2">
+                  <FormLabel className="flex items-center gap-2">
+                    <Paperclip className="h-4 w-4" /> Reference Images (optional)
+                  </FormLabel>
+                  <div className="flex gap-4">
+                    <FormField
+                      control={form.control}
+                      name="referenceImage1"
+                      render={({field}) => (
+                        <FormItem className="flex-1">
+                          <ReferenceImageUpload
+                            field={field}
+                            preview={referenceImage1Preview}
+                            onRemove={() => form.setValue('referenceImage1', null, {shouldValidate: true})}
                           />
-                        </FormControl>
+                        </FormItem>
                       )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    />
+                    <FormField
+                      control={form.control}
+                      name="referenceImage2"
+                      render={({field}) => (
+                        <FormItem className="flex-1">
+                          <ReferenceImageUpload
+                            field={field}
+                            preview={referenceImage2Preview}
+                            onRemove={() => form.setValue('referenceImage2', null, {shouldValidate: true})}
+                          />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
 
-                <FormField
-                  control={form.control}
-                  name="referenceImage2"
-                  render={({field}) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Paperclip className="h-4 w-4" /> Reference Image 2 (optional)
-                      </FormLabel>
-                      {referenceImage2Preview ? (
-                         <ImagePreview
-                           preview={referenceImage2Preview}
-                           onRemove={() => form.setValue('referenceImage2', null, {shouldValidate: true})}
-                         />
-                      ) : (
-                        <FormControl>
-                          <Input
-                            type="file"
-                            accept="image/png, image/jpeg, image/webp"
-                            className="file:text-primary-foreground"
-                            onChange={e => field.onChange(e.target.files)}
-                          />
-                        </FormControl>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
