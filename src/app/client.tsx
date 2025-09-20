@@ -288,7 +288,7 @@ export default function BrandBoostClient() {
                   render={({field}) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
-                        <Type className="h-4 w-4" /> Custom Text (optional)
+                        <Type className="h-4 w-4" /> Additional Text (included in image)
                       </FormLabel>
                       <FormControl>
                         <Textarea placeholder="e.g., Grand Opening Sale! 50% Off!" {...field} />
