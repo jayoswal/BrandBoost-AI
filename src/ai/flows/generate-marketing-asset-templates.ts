@@ -62,18 +62,18 @@ const generateMarketingAssetTemplatesFlow = ai.defineFlow(
     const {media} = await ai.generate({
       model: 'googleai/gemini-2.5-flash-image-preview',
       prompt: [
-        {
-          media: {url: input.businessLogoDataUri},
-        },
-        {
-          text: `Generate a ${input.assetType} that incorporates the user’s provided business logo and name (${input.businessName}) in a clean, visually appealing way. Use the custom text (${input.customText}) and color palette (${input.colorPalette}) if provided.`,
-        },
+        {media: {url: input.businessLogoDataUri}},
+        {text: `Generate a ${input.assetType} that incorporates the user’s provided business logo and name (${input.businessName}) in a clean, visually appealing way. Use the custom text (${input.customText}) and color palette (${input.colorPalette}) if provided.`},
       ],
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
     });
 
-    return {assetDataUri: media!.url};
+    if (!media) {
+      throw new Error('Image generation failed.');
+    }
+
+    return {assetDataUri: media.url};
   }
 );
