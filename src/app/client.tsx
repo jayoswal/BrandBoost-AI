@@ -471,8 +471,13 @@ export default function BrandBoostClient() {
                 <p className="text-sm">This may take a moment.</p>
               </div>
             ) : generatedImage ? (
-              <div className="relative aspect-video w-full overflow-hidden rounded-md">
-                <Image src={generatedImage} alt="Generated marketing asset" fill objectFit="contain" />
+              <div className="relative aspect-square w-full max-w-full overflow-hidden rounded-lg p-2">
+                <Image
+                  src={generatedImage}
+                  alt="Generated marketing asset"
+                  fill
+                  style={{objectFit: 'contain'}}
+                />
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
