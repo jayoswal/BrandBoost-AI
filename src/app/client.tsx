@@ -9,9 +9,10 @@ import {
   LoaderCircle,
   Palette,
   Type,
+  X,
 } from 'lucide-react';
 import Image from 'next/image';
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import {useForm} from 'react-hook-form';
 import * as z from 'zod';
 
@@ -59,6 +60,7 @@ export default function BrandBoostClient() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState('png');
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const {toast} = useToast();
 
   const form = useForm<FormValues>({
@@ -70,6 +72,24 @@ export default function BrandBoostClient() {
       colorPalette: '',
     },
   });
+
+  const logoFile = form.watch('logo');
+
+  useEffect(() => {
+    if (logoFile && logoFile.length > 0) {
+      const file = logoFile[0];
+      if (file instanceof File) {
+        const previewUrl = URL.createObjectURL(file);
+        setLogoPreview(previewUrl);
+
+        return () => {
+          URL.revokeObjectURL(previewUrl);
+        };
+      }
+    } else {
+      setLogoPreview(null);
+    }
+  }, [logoFile]);
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
@@ -160,14 +180,38 @@ export default function BrandBoostClient() {
                       <FormLabel className="flex items-center gap-2">
                         <ImagePlus className="h-4 w-4" /> Business Logo
                       </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="file"
-                          accept="image/png, image/jpeg, image/webp"
-                          className="file:text-primary-foreground"
-                          onChange={e => field.onChange(e.target.files)}
-                        />
-                      </FormControl>
+                      {logoPreview ? (
+                        <div className="relative h-24 w-24">
+                          <Image
+                            src={logoPreview}
+                            alt="Logo preview"
+                            layout="fill"
+                            objectFit="contain"
+                            className="rounded-md border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -right-2 -top-2 h-6 w-6 rounded-full"
+                            onClick={() => {
+                              form.setValue('logo', null, {shouldValidate: true});
+                              setLogoPreview(null);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/png, image/jpeg, image/webp"
+                            className="file:text-primary-foreground"
+                            onChange={e => field.onChange(e.target.files)}
+                          />
+                        </FormControl>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
