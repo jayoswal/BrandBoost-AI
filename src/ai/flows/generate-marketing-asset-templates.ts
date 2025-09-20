@@ -37,24 +37,15 @@ export async function generateMarketingAssetTemplates(input: GenerateMarketingAs
   return generateMarketingAssetTemplatesFlow(input);
 }
 
-const generationPrompt = ai.definePrompt({
-    name: 'generateMarketingAssetTemplatesPrompt',
-    input: {schema: GenerateMarketingAssetTemplatesInputSchema},
-    output: {schema: GenerateMarketingAssetTemplatesOutputSchema},
-    prompt: `You are a professional graphic designer AI assistant that creates high-quality, modern, and creative marketing assets for businesses.
+const generationPromptText = `You are a professional graphic designer AI assistant that creates high-quality, modern, and creative marketing assets for businesses.
 
-Generate a {{{assetType}}} that incorporates the user’s provided business logo and name in a clean, visually appealing way. Use the custom text and color palette if provided.
+Generate a {{assetType}} that incorporates the user’s provided business logo and name in a clean, visually appealing way. Use the custom text and color palette if provided.
 
-Business Name: {{{businessName}}}
-Business Logo: {{media url=businessLogoDataUri}}
-Custom Text: {{#if customText}}'{{{customText}}}'{{/if}}
-Color Palette: {{#if colorPalette}}'{{{colorPalette}}}'{{/if}}
-`,
-    model: 'googleai/gemini-2.5-flash-image-preview',
-    config: {
-      responseModalities: ['TEXT', 'IMAGE'],
-    },
-});
+Business Name: {{businessName}}
+Custom Text: {{customText}}
+Color Palette: {{colorPalette}}
+`;
+
 
 const generateMarketingAssetTemplatesFlow = ai.defineFlow(
   {
@@ -62,11 +53,22 @@ const generateMarketingAssetTemplatesFlow = ai.defineFlow(
     inputSchema: GenerateMarketingAssetTemplatesInputSchema,
     outputSchema: GenerateMarketingAssetTemplatesOutputSchema,
   },
-  async input => {
+  async (input) => {
+    let prompt = generationPromptText
+      .replace('{{assetType}}', input.assetType)
+      .replace('{{businessName}}', input.businessName)
+      .replace('{{customText}}', input.customText || '')
+      .replace('{{colorPalette}}', input.colorPalette || '');
+
     const {media} = await ai.generate({
-        model: generationPrompt.model,
-        prompt: await generationPrompt.render({input}),
-        config: generationPrompt.config,
+        model: 'googleai/gemini-2.5-flash-image-preview',
+        prompt: [
+            {text: prompt},
+            {media: {url: input.businessLogoDataUri}}
+        ],
+        config: {
+            responseModalities: ['TEXT', 'IMAGE'],
+        },
     });
 
     if (!media) {
