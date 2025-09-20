@@ -4,6 +4,7 @@ import {zodResolver} from '@hookform/resolvers/zod';
 import {
   Building2,
   Download,
+  FileText,
   Image as ImageIcon,
   ImagePlus,
   LoaderCircle,
@@ -41,6 +42,7 @@ const formSchema = z.object({
     message: 'Business name must be at least 2 characters.',
   }),
   assetType: z.string().min(1, 'Please select an asset type.'),
+  imageDescription: z.string().min(1, 'Image description is required.'),
   customText: z.string().optional(),
   colorPalette: z.string().optional(),
 });
@@ -68,6 +70,7 @@ export default function BrandBoostClient() {
     defaultValues: {
       businessName: '',
       assetType: 'Social Media Post',
+      imageDescription: '',
       customText: '',
       colorPalette: '',
     },
@@ -103,6 +106,7 @@ export default function BrandBoostClient() {
         businessLogoDataUri,
         businessName: values.businessName,
         assetType: values.assetType,
+        imageDescription: values.imageDescription,
         customText: values.customText,
         colorPalette: values.colorPalette,
       });
@@ -185,7 +189,7 @@ export default function BrandBoostClient() {
                           <Image
                             src={logoPreview}
                             alt="Logo preview"
-                            layout="fill"
+                            fill
                             objectFit="contain"
                             className="rounded-md border"
                           />
@@ -261,6 +265,25 @@ export default function BrandBoostClient() {
 
                 <FormField
                   control={form.control}
+                  name="imageDescription"
+                  render={({field}) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" /> Image Description
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="e.g., Ganesh Chaturthi Festival post, 50% off sale post"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="customText"
                   render={({field}) => (
                     <FormItem>
@@ -324,7 +347,7 @@ export default function BrandBoostClient() {
               </div>
             ) : generatedImage ? (
               <div className="relative aspect-video w-full overflow-hidden rounded-md">
-                <Image src={generatedImage} alt="Generated marketing asset" layout="fill" objectFit="contain" />
+                <Image src={generatedImage} alt="Generated marketing asset" fill objectFit="contain" />
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">

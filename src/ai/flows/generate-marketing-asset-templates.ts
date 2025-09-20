@@ -19,6 +19,7 @@ const GenerateMarketingAssetTemplatesInputSchema = z.object({
     ),
   businessName: z.string().describe('The name of the business.'),
   assetType: z.string().describe('The type of marketing asset to generate (e.g., banner, social media post).'),
+  imageDescription: z.string().describe('A description of what the image should be about.'),
   customText: z.string().optional().describe('Optional custom text to include in the asset.'),
   colorPalette: z.string().optional().describe('Optional color palette to use for the asset.'),
 });
@@ -37,16 +38,6 @@ export async function generateMarketingAssetTemplates(input: GenerateMarketingAs
   return generateMarketingAssetTemplatesFlow(input);
 }
 
-const generationPromptText = `You are a professional graphic designer AI assistant that creates high-quality, modern, and creative marketing assets for businesses.
-
-Generate a {{assetType}} that incorporates the user’s provided business logo and name in a clean, visually appealing way. Use the custom text and color palette if provided.
-
-Business Name: {{businessName}}
-Custom Text: {{customText}}
-Color Palette: {{colorPalette}}
-`;
-
-
 const generateMarketingAssetTemplatesFlow = ai.defineFlow(
   {
     name: 'generateMarketingAssetTemplatesFlow',
@@ -54,11 +45,16 @@ const generateMarketingAssetTemplatesFlow = ai.defineFlow(
     outputSchema: GenerateMarketingAssetTemplatesOutputSchema,
   },
   async (input) => {
-    let prompt = generationPromptText
-      .replace('{{assetType}}', input.assetType)
-      .replace('{{businessName}}', input.businessName)
-      .replace('{{customText}}', input.customText || '')
-      .replace('{{colorPalette}}', input.colorPalette || '');
+    const prompt = `You are a professional graphic designer AI assistant that creates high-quality, modern, and creative marketing assets for businesses.
+
+Generate a ${input.assetType} based on the following description: "${input.imageDescription}".
+
+Incorporate the user’s provided business logo and name in a clean, visually appealing way. Use the custom text and color palette if provided.
+
+Business Name: ${input.businessName}
+Custom Text: ${input.customText || ''}
+Color Palette: ${input.colorPalette || ''}
+`;
 
     const {media} = await ai.generate({
         model: 'googleai/gemini-2.5-flash-image-preview',
