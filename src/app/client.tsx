@@ -239,7 +239,7 @@ export default function BrandBoostClient() {
 
     return (
       <FormControl>
-        <>
+        <div>
           <Input
             type="file"
             accept="image/png, image/jpeg, image/webp"
@@ -256,7 +256,7 @@ export default function BrandBoostClient() {
             <Upload className="mr-2 h-4 w-4" />
             Upload
           </Button>
-        </>
+        </div>
       </FormControl>
     );
   };
