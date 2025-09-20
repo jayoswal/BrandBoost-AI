@@ -25,9 +25,10 @@ import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} f
 import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage} from '@/components/ui/form';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {Textarea} from '@/components/ui/textarea';
 import {useToast} from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import {cn} from '@/lib/utils';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -74,6 +75,7 @@ const fileToDataUri = (file: File): Promise<string> => {
 
 export default function BrandBoostClient() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState('png');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -135,7 +137,6 @@ export default function BrandBoostClient() {
     }
   }, [referenceImage2File]);
 
-
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
     setGeneratedImage(null);
@@ -164,6 +165,7 @@ export default function BrandBoostClient() {
 
       if (result && result.assetDataUri) {
         setGeneratedImage(result.assetDataUri);
+        setHistory(prevHistory => [result.assetDataUri, ...prevHistory]);
         toast({
           title: 'Asset Generated!',
           description: 'Your new marketing asset is ready.',
@@ -233,34 +235,32 @@ export default function BrandBoostClient() {
       </div>
     );
   };
-  
-  const FileUpload = ({field, className}: {field: any; className?: string;}) => {
+
+  const FileUpload = ({field, className}: {field: any; className?: string}) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     return (
-      <FormControl>
-        <div>
-          <Input
-            type="file"
-            accept="image/png, image/jpeg, image/webp"
-            className="hidden"
-            ref={inputRef}
-            onChange={e => field.onChange(e.target.files)}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            className={cn('w-full', className)}
-            onClick={() => inputRef.current?.click()}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload
-          </Button>
-        </div>
-      </FormControl>
+      <div>
+        <Input
+          type="file"
+          accept="image/png, image/jpeg, image/webp"
+          className="hidden"
+          ref={inputRef}
+          onChange={e => field.onChange(e.target.files)}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          className={cn('w-full', className)}
+          onClick={() => inputRef.current?.click()}
+        >
+          <Upload className="mr-2 h-4 w-4" />
+          Upload
+        </Button>
+      </div>
     );
   };
-    const ReferenceImageUpload = ({
+  const ReferenceImageUpload = ({
     field,
     preview,
     onRemove,
@@ -371,7 +371,7 @@ export default function BrandBoostClient() {
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="space-y-2">
                   <FormLabel className="flex items-center gap-2">
                     <Paperclip className="h-4 w-4" /> Reference Images (optional)
@@ -405,7 +405,6 @@ export default function BrandBoostClient() {
                     />
                   </div>
                 </div>
-
 
                 <FormField
                   control={form.control}
@@ -459,35 +458,58 @@ export default function BrandBoostClient() {
 
       <div className="md:col-span-2">
         <Card className="sticky top-20">
-          <CardHeader>
-            <CardTitle className="font-headline text-xl">Preview</CardTitle>
-            <CardDescription>Your generated asset will appear here.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex min-h-[400px] items-center justify-center rounded-lg border-2 border-dashed bg-muted/50 p-4">
-            {isLoading ? (
-              <div className="flex flex-col items-center gap-4 text-muted-foreground">
-                <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
-                <p className="font-bold">Generating your masterpiece...</p>
-                <p className="text-sm">This may take a moment.</p>
-              </div>
-            ) : generatedImage ? (
-              <div className="relative aspect-square w-full max-w-full overflow-hidden rounded-lg p-2">
-                <Image
-                  src={generatedImage}
-                  alt="Generated marketing asset"
-                  fill
-                  style={{objectFit: 'contain'}}
-                />
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
-                <ImageIcon className="h-12 w-12" />
-                <p className="font-bold">Ready to create?</p>
-                <p className="text-sm">Fill out the form to generate your asset.</p>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter className="justify-end gap-2">
+          <Tabs defaultValue="preview">
+            <CardHeader>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+                <TabsTrigger value="history">History</TabsTrigger>
+              </TabsList>
+            </CardHeader>
+            <TabsContent value="preview">
+              <CardContent className="flex min-h-[400px] items-center justify-center rounded-lg border-2 border-dashed bg-muted/50 p-4">
+                {isLoading ? (
+                  <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                    <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
+                    <p className="font-bold">Generating your masterpiece...</p>
+                    <p className="text-sm">This may take a moment.</p>
+                  </div>
+                ) : generatedImage ? (
+                  <div className="relative aspect-square w-full max-w-full overflow-hidden rounded-lg p-2">
+                    <Image
+                      src={generatedImage}
+                      alt="Generated marketing asset"
+                      fill
+                      style={{objectFit: 'contain'}}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
+                    <ImageIcon className="h-12 w-12" />
+                    <p className="font-bold">Ready to create?</p>
+                    <p className="text-sm">Fill out the form to generate your asset.</p>
+                  </div>
+                )}
+              </CardContent>
+            </TabsContent>
+            <TabsContent value="history">
+              <CardContent className="min-h-[400px] rounded-lg border-2 border-dashed bg-muted/50 p-4">
+                {history.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    {history.map((img, index) => (
+                      <div key={index} className="relative aspect-square w-full overflow-hidden rounded-lg">
+                        <Image src={img} alt={`History image ${index + 1}`} fill style={{objectFit: 'contain'}} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-center text-muted-foreground">
+                    <p>Your generated images will appear here.</p>
+                  </div>
+                )}
+              </CardContent>
+            </TabsContent>
+          </Tabs>
+          <CardFooter className="justify-end gap-2 pt-4">
             <Select onValueChange={setDownloadFormat} defaultValue={downloadFormat} disabled={!generatedImage}>
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="Format" />
