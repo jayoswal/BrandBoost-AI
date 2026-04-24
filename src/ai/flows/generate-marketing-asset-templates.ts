@@ -72,10 +72,10 @@ Color Palette: ${input.colorPalette || ''}
     }
 
     const {media} = await ai.generate({
-        model: 'googleai/gemini-2.5-flash-image-preview',
+        model: 'googleai/gemini-2.5-flash-image',
         prompt,
         config: {
-            responseModalities: ['TEXT', 'IMAGE'],
+            responseModalities: ['IMAGE'],
         },
     });
 

@@ -36,17 +36,6 @@ export async function integrateLogoAndName(input: IntegrateLogoAndNameInput): Pr
   return integrateLogoAndNameFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'integrateLogoAndNamePrompt',
-  input: {schema: IntegrateLogoAndNameInputSchema},
-  output: {schema: IntegrateLogoAndNameOutputSchema},
-  prompt: `You are a graphic designer AI assistant.  Generate high-quality, modern, and creative marketing assets for businesses.  Incorporate the user’s provided business logo and name template in a clean, visually appealing way.
-
-Business Name: {{{businessName}}}
-Logo: {{media url=logoDataUri}}
-Template: {{media url=templateDataUri}}`,
-});
-
 const integrateLogoAndNameFlow = ai.defineFlow(
   {
     name: 'integrateLogoAndNameFlow',
@@ -55,15 +44,22 @@ const integrateLogoAndNameFlow = ai.defineFlow(
   },
   async input => {
     const {media} = await ai.generate({
-        model: 'googleai/gemini-2.5-flash-image-preview',
+        model: 'googleai/gemini-2.5-flash-image',
         prompt: [
           {media: {url: input.templateDataUri}},
-          {text: `Integrate this logo: {{media url=${input.logoDataUri}}}, and business name: ${input.businessName} into the template`},
+          {text: "Integrate this logo:"},
+          {media: {url: input.logoDataUri}},
+          {text: `and business name: ${input.businessName} into the template in a clean, professional way.`},
         ],
         config: {
-          responseModalities: ['TEXT', 'IMAGE'], // MUST provide both TEXT and IMAGE, IMAGE only won't work
+          responseModalities: ['IMAGE'],
         },
       });
-    return {integratedAssetDataUri: media!.url};
+    
+    if (!media) {
+      throw new Error('Asset integration failed.');
+    }
+
+    return {integratedAssetDataUri: media.url};
   }
 );
